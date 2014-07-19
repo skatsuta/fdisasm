@@ -469,9 +469,12 @@ while i < bin.Length do
                                   opr sreg.[reg]
     | b when b &&& 0b11111000 = 0b10110000 ->
         show 2 <| sprintf "mov %s,0x%x" reg8.[b &&& 0b111] bin.[i+1]
+
     | b when b &&& 0b11111000 = 0b10111000 ->
-        show 3 <| sprintf "mov %s,0x%x%x"
-            reg16.[b &&& 0b111] bin.[i+2] bin.[i+1]
+        if int bin.[i+2] = 0 then
+            show 3 <| sprintf "mov %s,0x%x" reg16.[b &&& 0b111] bin.[i+1]
+        else 
+            show 3 <| sprintf "mov %s,0x%x%x" reg16.[b &&& 0b111] bin.[i+2] bin.[i+1]
 
 
     // Add: R/M with R to Either

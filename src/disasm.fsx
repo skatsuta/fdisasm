@@ -99,9 +99,15 @@ let modrm() =
 // TODO: disp-low と disp-high がある場合がうまくいかない
 let disp len =
     let refindex = i + len
+    //printfn "refindex = %x, adder = %x" refindex ((bin.[refindex - 1] <<< 8) + bin.[refindex - 2])
     match len with
-    | 2 -> refindex + int bin.[refindex - 1]
-    | 3 -> refindex + int (bin.[refindex - 1] <<< 8) + int bin.[refindex - 2]
+    | 2 -> 
+        // jmp short の場合は繰り上がりを無視する
+        if int bin.[i] = 0b11101011 then
+            (refindex + int bin.[refindex - 1]) % 0x100
+        else 
+            (refindex + int bin.[refindex - 1])
+    | 3 -> refindex + ((int bin.[refindex - 1] <<< 8) + int bin.[refindex - 2])
     | _ -> 0
 
 // Main flow
@@ -620,9 +626,12 @@ while i < bin.Length do
         show 4 <| sprintf "cmp %s,%s"
                                     opr reg16.[reg]
     | 0b00111100 ->
-        show 2 <| sprintf "cmp al,0x%02x" bin.[i+1]
+        show 2 <| sprintf "cmp al,0x%x" bin.[i+1]
     | 0b00111101 ->
-        show 3 <| sprintf "cmp ax,0x%02x%02x" bin.[i+2] bin.[i+1]
+        if int bin.[i+2] = 0 then
+            show 3 <| sprintf "cmp ax,0x%x" bin.[i+1]
+        else
+            show 3 <| sprintf "cmp ax,0x%x%x" bin.[i+2] bin.[i+1]
     | 0b00111010 -> 
         let len, opr = modrm()
         show 2 <| sprintf "cmp al,%s"
@@ -684,10 +693,10 @@ while i < bin.Length do
     // JMP Direct within Segment
     | 0b11101001 (* E9 *) ->
         let len = 3
-        show 3 <| sprintf "jmp word 0x%x" (disp len)
+        show len <| sprintf "jmp word 0x%x" (disp len)
 
     // JMP Direct within Segment-Short
-    // TODO: EB96 jmp short 0x40 にならない 
+    // TODO: EB5F jmp short 0x106 が 0x106 と2バイト分あるのはおかしい
     | 0b11101011 ->
         let len = 2
         show 2 <| sprintf "jmp short 0x%x" (disp len)

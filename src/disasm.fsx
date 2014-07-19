@@ -505,7 +505,7 @@ while i < bin.Length do
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let fromreg = if d = 0 then (getregstr w bin.[i+1]) else op
         let toreg   = if d = 1 then (getregstr w bin.[i+1]) else op
-        show (2 + len) <| sprintf "sub %s, %s" toreg fromreg
+        show (2 + len) <| sprintf "sub %s,%s" toreg fromreg
 
 //    // Add: Immediate to R/M sw=00
 //    // Add with Carry: Immediate to R/M sw=00
@@ -611,7 +611,10 @@ while i < bin.Length do
         show 2 <| sprintf "sub al, 0x%x" bin.[i+1]
     // Subtract: Immediate to Accumulator w=1
     | 0b00101101 ->
-        show 3 <| sprintf "sub ax, 0x%x%x" bin.[i+2] bin.[i+1]
+        if int bin.[i+2] = 0 then
+            show 3 <| sprintf "sub ax,0x%x" bin.[i+1]
+        else
+            show 3 <| sprintf "sub ax,0x%x%x" bin.[i+2] bin.[i+1]
     // sbb
     | 0b00011000 ->
         let reg = (int bin.[i+1] >>> 3) &&& 0b111

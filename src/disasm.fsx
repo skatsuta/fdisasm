@@ -352,12 +352,11 @@ while i < bin.Length do
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let len, opr = modrm()
         let count = team3_dispcount (int bin.[i])
-        let size = team3_dispsize (int bin.[i])
+        let size = dispword()
         match reg with
         // Shift Logical/Arithmetic Left
         | 0b100 ->
-            show (2 + len) <| sprintf "shl %s %s,%s"
-                size opr count
+            show (2 + len) <| sprintf "shl %s%s,%s" size opr count
         // Shift Logical Right
         | 0b101 ->
             show (2 + len) <| sprintf "shr %s %s,%s"
@@ -551,20 +550,21 @@ while i < bin.Length do
     | 0b10000011 ->
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let len, op = modrm()
-        // Add
-        if reg = 0b000 then
-            show (3 + len) <| sprintf "add word %s, byte %s" op (dispstr (int (sbyte bin.[i+2])))
-        // Add with Carry
-        elif reg = 0b010 then
-            show (3 + len) <| sprintf "adc word %s, byte %s" op (dispstr (int (sbyte bin.[i+2])))
-        // Subtract
-        elif reg = 0b101 then
-            show (3 + len) <| sprintf "sub word %s, byte %s" op (dispstr (int (sbyte bin.[i+2])))
-        elif reg = 0b011 then
-            show (3 + len) <| sprintf "sbb word %s, byte %s" op (dispstr (int (sbyte bin.[i+2])))
-        elif reg = 0b111 then
-            show (3 + len) <| sprintf "cmp word %s, byte %s" op (dispstr (int (sbyte bin.[i+2])))
-        else show 1 <| sprintf "db 0x%02x" bin.[i]
+        let size = dispword()
+        let signed_disp = dispstr (int (sbyte bin.[i+2]))
+        let cmd = 
+            match reg with
+                // Add
+                | 0b000 -> "add"
+                // Add with Carry
+                | 0b010 -> "adc"
+                // Subtract
+                | 0b101 -> "sub"
+                | 0b011 -> "sbb"
+                | 0b111 -> "cmd"
+                | _ -> "???"
+        show (3 + len) <| sprintf "%s %s%s,byte %s" cmd size op signed_disp
+
     // Add: Immediate to Accumulator w=0
     | 0b00000100 ->
         show 2 <| sprintf "add al,0x%x" bin.[i+1]

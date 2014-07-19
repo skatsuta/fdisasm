@@ -30,13 +30,17 @@ let team3_accum = [| "al"; "ax" |]
 let team3_regw = [| reg8; reg16 |]
 let team3_word() =
     int bin.[i] &&& 0b1 
-let team3_dispword () =
-    if team3_word() = 0 then
-        "byte"
-    elif team3_word() = 1 then
-        "word"
+let dispword() =
+    let mode = int bin.[i+1] >>> 6
+    let w = int bin.[i] &&& 0b1
+    if mode = 0b11 then
+        ""
+    elif w = 0 then
+       "byte "
+    elif w = 1 then
+       "word "
     else
-        "???"
+       "???"
 let team3_dispdata d =
     if team3_word() = 0 then
         sprintf "0x%x" bin.[i+d]
@@ -190,8 +194,8 @@ while i < bin.Length do
     | 0b11111111 ->
         let mode = int bin.[i+1] >>> 6
         let len, opr = modrm()
-        show (2 + len) <| sprintf "push %s,%s"
-                                  (if mode = 0b11 then "" else "word ")
+        show (2 + len) <| sprintf "push %s %s"
+                                  (if mode = 0b11 then "" else "word")
                                   opr
     // PUSH Register
     | b when b &&& 0b11111000 = 0b01010000 ->
@@ -274,12 +278,13 @@ while i < bin.Length do
     // AND Immediate to Register/Memory
     // OR  Immediate to Register/Memory
     // XOR Immediate to Register/Memory
+    // 80*/81*
     | b when b &&& 0b11111110 = 0b10000000 ->
         let w = int bin.[i] &&& 0b1
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let len, opr = modrm()
         let data = team3_dispdata 2
-        let team3_w = team3_dispword()
+        let team3_w = dispword()
         if reg = 4 then
             show (3 + len + team3_word()) <| sprintf "and %s %s,%s"
                                                      team3_w opr data
@@ -298,7 +303,7 @@ while i < bin.Length do
         elif reg = 0b000 then
             show (3 + len + team3_word()) <| sprintf "sbb %s %s,%s" team3_w opr data
         elif reg = 0b111 then
-            show (3 + len + team3_word()) <| sprintf "cmp %s %s,%s" team3_w opr data
+            show (3 + len + team3_word()) <| sprintf "cmp %s%s,%s" team3_w opr data
         else
             show 1 <| sprintf "db 0x%02x" bin.[i]
 
@@ -307,7 +312,7 @@ while i < bin.Length do
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let len, opr = modrm()
         let data = team3_dispdata 2
-        let team3_w = team3_dispword()
+        let team3_w = dispword()
         let size = team3_dispsize (int bin.[i])
         let w = int bin.[i] &&& 0b1
         // TODO: test byte bl とかが出ない
@@ -500,45 +505,45 @@ while i < bin.Length do
         let toreg   = if d = 1 then (getregstr w bin.[i+1]) else op
         show (2 + len) <| sprintf "sub %s, %s" toreg fromreg
 
-    // Add: Immediate to R/M sw=00
-    // Add with Carry: Immediate to R/M sw=00
-    // Subtract: Immediate to R/M sw=00
-    | 0b10000000 ->
-        let reg = (int bin.[i+1] >>> 3) &&& 0b111
-        let len, op = modrm()
-        // 異常な命令は弾く
-        if reg <> 0b000 && reg <> 0b010 && reg <> 0b101 && reg <> 0b011 && reg <> 0b111
-        then show 1 <| sprintf "db 0x%02x" bin.[i]
-        // コマンド名を選択
-        let cmd =
-            if   reg = 0b000 then "add"
-            elif reg = 0b010 then "adc"
-            elif reg = 0b101 then "sub"
-            elif reg = 0b011 then "sbb"
-            else                  "cmp"
-        // 表示
-        show (3 + len) <| sprintf "%s byte %s,0x%x" cmd op bin.[i+2]
-
-    // Add: Immediate to R/M sw=01
-    // Add with Carry: Immediate to R/M sw=01
-    // Subtract: Immediate to R/M sw=01
-    | 0b10000001 ->
-        let w = (int bin.[i]) &&& 0b1
-        let reg = (int bin.[i+1] >>> 3) &&& 0b111
-        let len, op = modrm()
-        // 異常な命令は弾く
-        if reg <> 0b000 && reg <> 0b010 && reg <> 0b101 && reg <> 0b011 && reg <> 0b111
-        then show 1 <| sprintf "db 0x%02x" bin.[i]
-        // コマンド名を選択
-        let cmd =
-            if   reg = 0b000 then "add"
-            elif reg = 0b010 then "adc"
-            elif reg = 0b101 then "sub"
-            elif reg = 0b011 then "sbb"
-            else                  "cmp"
-        // 表示
-        // TODO: cmp に word を表示させない
-        show (3 + len + w) <| sprintf "%s word %s,0x%x%x" cmd op bin.[i+3] bin.[i+2]
+//    // Add: Immediate to R/M sw=00
+//    // Add with Carry: Immediate to R/M sw=00
+//    // Subtract: Immediate to R/M sw=00
+//    | 0b10000000 ->
+//        let reg = (int bin.[i+1] >>> 3) &&& 0b111
+//        let len, op = modrm()
+//        // 異常な命令は弾く
+//        if reg <> 0b000 && reg <> 0b010 && reg <> 0b101 && reg <> 0b011 && reg <> 0b111
+//        then show 1 <| sprintf "db 0x%02x" bin.[i]
+//        // コマンド名を選択
+//        let cmd =
+//            if   reg = 0b000 then "add"
+//            elif reg = 0b010 then "adc"
+//            elif reg = 0b101 then "sub"
+//            elif reg = 0b011 then "sbb"
+//            else                  "cmp"
+//        // 表示
+//        show (3 + len) <| sprintf "%s byte %s,0x%x" cmd op bin.[i+2]
+//
+//    // Add: Immediate to R/M sw=01
+//    // Add with Carry: Immediate to R/M sw=01
+//    // Subtract: Immediate to R/M sw=01
+//    | 0b10000001 ->
+//        let w = (int bin.[i]) &&& 0b1
+//        let reg = (int bin.[i+1] >>> 3) &&& 0b111
+//        let len, op = modrm()
+//        // 異常な命令は弾く
+//        if reg <> 0b000 && reg <> 0b010 && reg <> 0b101 && reg <> 0b011 && reg <> 0b111
+//        then show 1 <| sprintf "db 0x%02x" bin.[i]
+//        // コマンド名を選択
+//        let cmd =
+//            if   reg = 0b000 then "add"
+//            elif reg = 0b010 then "adc"
+//            elif reg = 0b101 then "sub"
+//            elif reg = 0b011 then "sbb"
+//            else                  "cmp"
+//        // 表示
+//        // TODO: cmp に word を表示させない
+//        show (3 + len + w) <| sprintf "%s word %s,0x%x%x" cmd op bin.[i+3] bin.[i+2]
 
     // Add: Immediate to R/M sw=11
     // Add with Carry: Immediate to R/M sw=11
@@ -722,3 +727,4 @@ while i < bin.Length do
 
     | _ ->
         show 1 <| sprintf "db 0x%02x" bin.[i]
+    

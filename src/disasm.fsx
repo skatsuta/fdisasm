@@ -1,4 +1,6 @@
-let bin = System.IO.File.ReadAllBytes "../../cc"
+// バイナリファイルの読み込み
+let bin = System.IO.File.ReadAllBytes "../test/cc"
+
 let mutable i = 0
 let show len asm =
     printf "%08X  " i
@@ -28,9 +30,9 @@ let team3_dispword () =
         "???"
 let team3_dispdata d =
     if team3_word() = 0 then
-        sprintf "0x%02x" bin.[i+d]
+        sprintf "0x%x" bin.[i+d]
     elif team3_word() = 1 then
-        sprintf "0x%02x%02x" bin.[i+d+1] bin.[i+d]
+        sprintf "0x%x%x" bin.[i+d+1] bin.[i+d]
     else
         sprintf "???"
 
@@ -61,9 +63,13 @@ let dispstr d =
 let modrm() =
     let mode = int bin.[i+1] >>> 6
     let rm   = int bin.[i+1] &&& 0b111
+    let w = int bin.[i] &&& 0b1
     match mode, rm with
     | 0b00, 0b110 ->
-        2, sprintf "[0x%02x%02x]" bin.[i+3] bin.[i+2]
+        if int bin.[i+3] = 0 then
+            2, sprintf "[0x%x]" bin.[i+2]
+        else
+            2, sprintf "[0x%x%x]" bin.[i+3] bin.[i+2]
     | 0b00, _ ->
         0, sprintf "[%s]" regm.[rm]
     | 0b01, _ ->
@@ -73,9 +79,11 @@ let modrm() =
         let d = (int16 bin.[i+2]) ||| ((int16 bin.[i+3]) <<< 8)
         2, sprintf "[%s%s]" regm.[rm] (dispstr (int d))
     | 0b11, _ ->
-        0, reg16.[rm]
+        0, if w = 0 then reg8.[rm] else reg16.[rm]
     | _ ->
         0, "???"
+
+// Main flow
 while i < bin.Length do
     match int bin.[i] with
     // MOV: R/M to/from Register
@@ -91,11 +99,11 @@ while i < bin.Length do
     // MOV: Immediate to R/M (word)
     | 0b11000111 ->
         let len, opr = modrm()
-        show (4 + len) <| sprintf "mov word %s,0x%02x%02x" opr bin.[i+3+len] bin.[i+2+len]
+        show (4 + len) <| sprintf "mov word %s,0x%x%x" opr bin.[i+3+len] bin.[i+2+len]
     // MOV: Immediate to R/M (byte)
     | 0b11000110 ->
         let len, opr = modrm()
-        show (3 + len) <| sprintf "mov byte %s,0x%02x" opr bin.[i+2+len]
+        show (3 + len) <| sprintf "mov byte %s,0x%x" opr bin.[i+2+len]
     // POP: R/M
     | 0b10001111 ->
         let len, opr = modrm()
@@ -137,12 +145,12 @@ while i < bin.Length do
     // ----------------------
     // MOV Memory to Accumulator
     | b when b &&& 0b11111110 = 0b10100000 ->
-        show 3 <| sprintf "mov %s, [0x%02x%02x]"
+        show 3 <| sprintf "mov %s, [0x%x%x]"
                           (if b &&& 0b1 = 0 then "al"; else "ax")
                           bin.[i+2] bin.[i+1]
     // MOV Accumulator to Memory
     | b when b &&& 0b11111110 = 0b10100010 ->
-        show 3 <| sprintf "mov [0x%02x%02x], %s"
+        show 3 <| sprintf "mov [0x%x%x], %s"
                           bin.[i+2] bin.[i+1]
                           (if b &&& 0b1 = 0 then "al"; else "ax") 
 
@@ -159,19 +167,19 @@ while i < bin.Length do
     | 0b10001101 ->
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let len, opr = modrm()
-        show (2 + len) <| sprintf "lea %s, %s"
+        show (2 + len) <| sprintf "lea %s,%s"
                                   reg16.[reg] opr
     // LES
     | 0b11000100 ->
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let len, opr = modrm()
-        show (2 + len) <| sprintf "les %s, %s"
+        show (2 + len) <| sprintf "les %s,%s"
                                   reg16.[reg] opr
     // PUSH Register/Memory
     | 0b11111111 ->
         let mode = int bin.[i+1] >>> 6
         let len, opr = modrm()
-        show (2 + len) <| sprintf "push %s%s"
+        show (2 + len) <| sprintf "push %s,%s"
                                   (if mode = 0b11 then "" else "word ")
                                   opr
     // PUSH Register
@@ -240,10 +248,10 @@ while i < bin.Length do
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let len, opr = modrm()
         if b &&& 0b10 = 0b00 then
-            show (2 + len) <| sprintf "xor %s, %s"
+            show (2 + len) <| sprintf "xor %s,%s"
                                          opr team3_regw.[team3_word()].[reg]
         if b &&& 0b10 = 0b10 then
-            show (2 + len) <| sprintf "xor %s, %s"
+            show (2 + len) <| sprintf "xor %s,%s"
                                          team3_regw.[team3_word()].[reg] opr
     // TEST Register/Memory and Register
     | b when b &&& 0b11111110 = 0b10000100 ->
@@ -256,29 +264,30 @@ while i < bin.Length do
     // OR  Immediate to Register/Memory
     // XOR Immediate to Register/Memory
     | b when b &&& 0b11111110 = 0b10000000 ->
+        let w = int bin.[i] &&& 0b1
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let len, opr = modrm()
         let data = team3_dispdata 2
         let team3_w = team3_dispword()
         if reg = 4 then
-            show (3 + len + team3_word()) <| sprintf "and %s %s, %s"
+            show (3 + len + team3_word()) <| sprintf "and %s %s,%s"
                                                      team3_w opr data
         elif reg = 1 then
-            show (3 + len + team3_word()) <| sprintf "or %s %s, %s"
+            show (3 + len + team3_word()) <| sprintf "or %s %s,%s"
                                                      team3_w opr data
         elif reg = 6 then
-            show (3 + len + team3_word()) <| sprintf "xor %s %s, %s"
+            show (3 + len + team3_word()) <| sprintf "xor %s %s,%s"
                                                      team3_w opr data
         elif reg = 0b000 then
-            show (3 + len + team3_word()) <| sprintf "add %s %s, %s" team3_w opr data
+            show (3 + len + team3_word()) <| sprintf "add %s %s,%s" team3_w opr data
         elif reg = 0b000 then
-            show (3 + len + team3_word()) <| sprintf "adc %s %s, %s" team3_w opr data
+            show (3 + len + team3_word()) <| sprintf "adc %s %s,%s" team3_w opr data
         elif reg = 0b000 then
-            show (3 + len + team3_word()) <| sprintf "sub %s %s, %s" team3_w opr data
+            show (3 + len + team3_word()) <| sprintf "sub %s %s,%s" team3_w opr data
         elif reg = 0b000 then
-            show (3 + len + team3_word()) <| sprintf "sbb %s %s, %s" team3_w opr data
+            show (3 + len + team3_word()) <| sprintf "sbb %s %s,%s" team3_w opr data
         elif reg = 0b111 then
-            show (3 + len + team3_word()) <| sprintf "cmp %s %s, %s" team3_w opr data
+            show (3 + len + team3_word()) <| sprintf "cmp %s %s,%s" team3_w opr data
         else
             show 1 <| sprintf "db 0x%02x" bin.[i]
 
@@ -289,15 +298,17 @@ while i < bin.Length do
         let data = team3_dispdata 2
         let team3_w = team3_dispword()
         let size = team3_dispsize (int bin.[i])
-        if reg = 0 then
-            show (3 + len + team3_word()) <| sprintf "test %s %s, %s"
-                                                     team3_w opr data
-// NOTの分岐
+        let w = int bin.[i] &&& 0b1
+        // TODO: test byte bl とかが出ない
+        if w = 0 && reg = 0 then
+            show (3 + len) <| sprintf "test %s,%s" opr data
+        elif w = 1 && reg = 0 then
+            show (3 + len + team3_word()) <| sprintf "test %s %s,%s" team3_w opr data
+        // NOTの分岐
         elif reg = 0b010 then
             show (2 + len) <| sprintf "not %s %s" size opr
         else
             show 1 <| sprintf "db 0x%02x" bin.[i]
-
 
     // AND Immediate to Accumulator
     | b when b &&& 0b11111110 = 0b00100100 ->
@@ -317,7 +328,7 @@ while i < bin.Length do
     // XOR Immediate to Accumulator
     | b when b &&& 0b11111110 = 0b00110100 ->
         let data = team3_dispdata 1
-        show (2 + team3_word()) <| sprintf "xor %s, %s"
+        show (2 + team3_word()) <| sprintf "xor %s,%s"
                                     team3_accum.[team3_word()] data
 
 // Shift/Rotate系の分岐
@@ -434,18 +445,17 @@ while i < bin.Length do
     | 0b10001110 ->
         let reg = (int bin.[i+1] >>> 3) &&& 0b11
         let len, opr = modrm()
-        show (2 + len) <| sprintf "mov %s, %s"
+        show (2 + len) <| sprintf "mov %s,%s"
                                   sreg.[reg] opr
     | 0b10001100 ->
         let reg = (int bin.[i+1] >>> 3) &&& 0b11
         let len, opr = modrm()
-        show (2 + len) <| sprintf "mov %s, %s"
+        show (2 + len) <| sprintf "mov %s,%s"
                                   opr sreg.[reg]
     | b when b &&& 0b11111000 = 0b10110000 ->
-        show 2 <| sprintf "mov %s, 0x%02x"
-            reg8.[b &&& 0b111] bin.[i+1]
+        show 2 <| sprintf "mov %s,0x%x" reg8.[b &&& 0b111] bin.[i+1]
     | b when b &&& 0b11111000 = 0b10111000 ->
-        show 3 <| sprintf "mov %s, 0x%02x%02x"
+        show 3 <| sprintf "mov %s,0x%x%x"
             reg16.[b &&& 0b111] bin.[i+2] bin.[i+1]
 
 
@@ -457,7 +467,7 @@ while i < bin.Length do
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let fromreg = if d = 0 then (getregstr w bin.[i+1]) else op
         let toreg   = if d = 1 then (getregstr w bin.[i+1]) else op
-        show (2 + len) <| sprintf "add %s, %s" toreg fromreg
+        show (2 + len) <| sprintf "add %s,%s" toreg fromreg
 
     // Add with Carry: R/M with R to Either
     | b when (b >>> 2) = 0b000100 ->
@@ -496,7 +506,7 @@ while i < bin.Length do
             elif reg = 0b011 then "sbb"
             else                  "cmp"
         // 表示
-        show (3 + len) <| sprintf "%s byte %s, 0x%02x" cmd op bin.[i+2]
+        show (3 + len) <| sprintf "%s byte %s,0x%x" cmd op bin.[i+2]
 
     // Add: Immediate to R/M sw=01
     // Add with Carry: Immediate to R/M sw=01
@@ -516,7 +526,9 @@ while i < bin.Length do
             elif reg = 0b011 then "sbb"
             else                  "cmp"
         // 表示
-        show (3 + len + w) <| sprintf "%s word %s, 0x%02x%02x" cmd op bin.[i+3] bin.[i+2]
+        // TODO: cmp に word を表示させない
+        show (3 + len + w) <| sprintf "%s word %s,0x%x%x" cmd op bin.[i+3] bin.[i+2]
+
     // Add: Immediate to R/M sw=11
     // Add with Carry: Immediate to R/M sw=11
     // Subtract: Immediate to R/M sw=11
@@ -539,16 +551,16 @@ while i < bin.Length do
         else show 1 <| sprintf "db 0x%02x" bin.[i]
     // Add: Immediate to Accumulator w=0
     | 0b00000100 ->
-        show 2 <| sprintf "add al, 0x%02x" bin.[i+1]
+        show 2 <| sprintf "add al,0x%x" bin.[i+1]
     // Add: Immediate to Accumulator w=1
     | 0b00000101 ->
-        show 3 <| sprintf "add ax, 0x%02x%02x" bin.[i+2] bin.[i+1]
+        show 3 <| sprintf "add ax,0x%x%x" bin.[i+2] bin.[i+1]
     // Add with Carry: Immediate to Accumulator w=0
     | 0b00010100 ->
-        show 2 <| sprintf "adc al, 0x%02x" bin.[i+1]
+        show 2 <| sprintf "adc al,0x%x" bin.[i+1]
     // Add with Carry: Immediate to Accumulator w=1
     | 0b00010101 ->
-        show 3 <| sprintf "adc ax, 0x%02x%02x" bin.[i+2] bin.[i+1]    
+        show 3 <| sprintf "adc ax,0x%x%x" bin.[i+2] bin.[i+1]    
     // Increment: Register
     | b when (b >>> 3) = 0b01000 ->
         let reg = (int b) &&& 0b111
@@ -577,10 +589,10 @@ while i < bin.Length do
     | 0b00100111 -> show 1 <| sprintf "daa"
     // Subtract: Immediate to Accumulator w=0
     | 0b00101100 ->
-        show 2 <| sprintf "sub al, 0x%02x" bin.[i+1]
+        show 2 <| sprintf "sub al, 0x%x" bin.[i+1]
     // Subtract: Immediate to Accumulator w=1
     | 0b00101101 ->
-        show 3 <| sprintf "sub ax, 0x%02x%02x" bin.[i+2] bin.[i+1]
+        show 3 <| sprintf "sub ax, 0x%x%x" bin.[i+2] bin.[i+1]
     // sbb
     | 0b00011000 ->
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
@@ -612,24 +624,24 @@ while i < bin.Length do
     | 0b00111000 ->
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let len, opr = modrm()
-        show 2 <| sprintf "cmp %s, %s"
+        show 2 <| sprintf "cmp %s,%s"
                                     opr reg8.[reg]
     | 0b00111001 ->
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let len, opr = modrm()
-        show 4 <| sprintf "cmp %s, %s"
+        show 4 <| sprintf "cmp %s,%s"
                                     opr reg16.[reg]
     | 0b00111100 ->
-        show 2 <| sprintf "cmp al, 0x%02x" bin.[i+1]
+        show 2 <| sprintf "cmp al,0x%02x" bin.[i+1]
     | 0b00111101 ->
-        show 3 <| sprintf "cmp ax, 0x%02x%02x" bin.[i+2] bin.[i+1]
+        show 3 <| sprintf "cmp ax,0x%02x%02x" bin.[i+2] bin.[i+1]
     | 0b00111010 -> 
         let len, opr = modrm()
-        show 2 <| sprintf "cmp al, %s"
+        show 2 <| sprintf "cmp al,%s"
                                    opr
     | 0b00111011 -> 
         let len, opr = modrm()
-        show 2 <| sprintf "cmp ax, %s"
+        show 2 <| sprintf "cmp ax,%s"
                                    opr
     // aas
     | 0b00111111 ->
@@ -680,6 +692,23 @@ while i < bin.Length do
     // cwd
     | 0b10011001 ->
         show 1 <| sprintf "cwd"
+    
+    // TODO: 次バイトの disp の意味がわからない
+    | 0b01110011 ->
+
+        show 2 <| sprintf "jnc 0x??"
+    
+    // TODO: disp
+    | 0b01110101 ->
+        show 2 <| sprintf "jnz 0x??"
+    
+    // TODO: disp
+    | 0b01111110 ->
+        show 2 <| sprintf "jng 0x??"
+
+    // HLT: Halt
+    | 0b11110100 ->
+        show 1 <| sprintf "hlt"
 
     | _ ->
         show 1 <| sprintf "db 0x%02x" bin.[i]

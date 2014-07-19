@@ -204,11 +204,16 @@ while i < bin.Length do
                                   reg16.[reg] opr
     // PUSH Register/Memory
     | 0b11111111 ->
-        let mode = int bin.[i+1] >>> 6
         let len, opr = modrm()
-        show (2 + len) <| sprintf "push %s %s"
-                                  (if mode = 0b11 then "" else "word")
-                                  opr
+        let flag = (int bin.[i + 1] >>> 3) &&& 0b111
+        let size = dispword()
+        let cmd = match flag with
+                    | 0b110 -> "push"
+                    | 0b000 -> "inc"
+                    | 0b001 -> "dec"
+                    | _ -> "???"
+        show (2 + len) <| sprintf "%s %s%s" cmd size opr
+
     // PUSH Register
     | b when b &&& 0b11111000 = 0b01010000 ->
         show 1 <| sprintf "push %s"
@@ -482,11 +487,10 @@ while i < bin.Length do
     | b when b &&& 0b11111000 = 0b10110000 ->
         show 2 <| sprintf "mov %s,0x%x" reg8.[b &&& 0b111] bin.[i+1]
 
-    | b when b &&& 0b11111000 = 0b10111000 ->
-        if int bin.[i+2] = 0 then
-            show 3 <| sprintf "mov %s,0x%x" reg16.[b &&& 0b111] bin.[i+1]
-        else 
-            show 3 <| sprintf "mov %s,0x%x%x" reg16.[b &&& 0b111] bin.[i+2] bin.[i+1]
+    // MOV Immediate to Register
+    | b when b &&& 0b11111000 = 0b10111000 (* B8 *) ->
+        let value = (int bin.[i+2] <<< 8) + int bin.[i+1]
+        show 3 <| sprintf "mov %s,0x%x" reg16.[b &&& 0b111] value
 
 
     // Add: R/M with R to Either
@@ -715,6 +719,11 @@ while i < bin.Length do
     | 0b01110101 ->
         let len = 2
         show 2 <| sprintf "jnz 0x%x" (disp len)
+    
+    // JNLE/JG
+    | 0b01111111 (* 7F *) ->
+        let len = 2
+        show len <| sprintf "jg 0x%x" (disp len)
     
     // JNG
     | 0b01111110 ->

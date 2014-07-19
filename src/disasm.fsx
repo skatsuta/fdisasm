@@ -243,20 +243,20 @@ while i < bin.Length do
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let len, opr = modrm()
         if b &&& 0b10 = 0b00 then
-            show (2 + len) <| sprintf "and %s, %s"
+            show (2 + len) <| sprintf "and %s,%s"
                                          opr team3_regw.[team3_word()].[reg]
         if b &&& 0b10 = 0b10 then
-            show (2 + len) <| sprintf "and %s, %s"
+            show (2 + len) <| sprintf "and %s,%s"
                                          team3_regw.[team3_word()].[reg] opr
     // OR Reg./Memory and Register to Either
     | b when b &&& 0b11111100 = 0b00001000 ->
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let len, opr = modrm()
         if b &&& 0b10 = 0b00 then
-            show (2 + len) <| sprintf "or %s, %s"
+            show (2 + len) <| sprintf "or %s,%s"
                                          opr team3_regw.[team3_word()].[reg]
         if b &&& 0b10 = 0b10 then
-            show (2 + len) <| sprintf "or %s, %s"
+            show (2 + len) <| sprintf "or %s,%s"
                                          team3_regw.[team3_word()].[reg] opr
     // XOR Reg./Memory and Register to Either
     | b when b &&& 0b11111100 = 0b00110000 ->
@@ -272,7 +272,7 @@ while i < bin.Length do
     | b when b &&& 0b11111110 = 0b10000100 ->
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let len, opr = modrm()
-        show (2 + len) <| sprintf "test %s, %s"
+        show (2 + len) <| sprintf "test %s,%s"
                                             opr team3_regw.[team3_word()].[reg]
 
     // AND Immediate to Register/Memory

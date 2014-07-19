@@ -1,15 +1,24 @@
 // バイナリファイルの読み込み
 let bin = System.IO.File.ReadAllBytes "../test/cc"
 
+// バイナリデータの配列インデックス
 let mutable i = 0
+// 
 let show len asm =
+    // バイナリデータ配列の位置
     printf "%08X  " i
+    // バイナリデータの表示
     for j = 0 to len - 1 do
         printf "%02X" bin.[i + j]
+    // バイナリデータとアセンブラの間のインデント
     for j = len to 8 do
         printf "  "
+    // アセンブラの表示
     printfn "%s" asm
+    // インデックスを1命令分進める
     i <- i + len
+
+// レジスタ
 let reg16 = [| "ax"; "cx"; "dx"; "bx"; "sp"; "bp"; "si"; "di" |]
 let reg8  = [| "al"; "cl"; "dl"; "bl"; "ah"; "ch"; "dh"; "bh" |]
 let sreg  = [| "es"; "cs"; "ss"; "ds" |]
@@ -82,6 +91,8 @@ let modrm() =
         0, if w = 0 then reg8.[rm] else reg16.[rm]
     | _ ->
         0, "???"
+
+let disp() = (i + 2) + (int) bin.[i+1]
 
 // Main flow
 while i < bin.Length do
@@ -693,18 +704,17 @@ while i < bin.Length do
     | 0b10011001 ->
         show 1 <| sprintf "cwd"
     
-    // TODO: 次バイトの disp の意味がわからない
+    // JNC
     | 0b01110011 ->
-
-        show 2 <| sprintf "jnc 0x??"
+        show 2 <| sprintf "jnc 0x%x" (disp())
     
-    // TODO: disp
+    // JNZ
     | 0b01110101 ->
-        show 2 <| sprintf "jnz 0x??"
+        show 2 <| sprintf "jnz 0x%x" (disp())
     
-    // TODO: disp
+    // JNG
     | 0b01111110 ->
-        show 2 <| sprintf "jng 0x??"
+        show 2 <| sprintf "jng 0x%x" (disp())
 
     // HLT: Halt
     | 0b11110100 ->

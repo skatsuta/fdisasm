@@ -96,7 +96,13 @@ let modrm() =
     | _ ->
         0, "???"
 
-let disp() = (i + 2) + (int) bin.[i+1]
+// TODO: disp-low と disp-high がある場合がうまくいかない
+let disp len =
+    let refindex = i + len
+    match len with
+    | 2 -> refindex + int bin.[refindex - 1]
+    | 3 -> refindex + int (bin.[refindex - 1] <<< 8) + int bin.[refindex - 2]
+    | _ -> 0
 
 // Main flow
 while i < bin.Length do
@@ -554,7 +560,7 @@ while i < bin.Length do
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let len, op = modrm()
         let size = dispword()
-        let signed_disp = dispstr (int (sbyte bin.[i+2]))
+        let signed_disp = dispstr (int (sbyte bin.[i+len+2]))
         let cmd = 
             match reg with
                 // Add
@@ -564,7 +570,7 @@ while i < bin.Length do
                 // Subtract
                 | 0b101 -> "sub"
                 | 0b011 -> "sbb"
-                | 0b111 -> "cmd"
+                | 0b111 -> "cmp"
                 | _ -> "???"
         show (3 + len) <| sprintf "%s %s%s,byte %s" cmd size op signed_disp
 
@@ -715,20 +721,36 @@ while i < bin.Length do
     | 0b10011001 ->
         show 1 <| sprintf "cwd"
     
+    // JMP Direct within Segment
+    | 0b11101001 (* E9 *) ->
+        let len = 3
+        show 3 <| sprintf "jmp word 0x%x" (disp len)
+
+    // JMP Direct within Segment-Short
+    // TODO: EB96 jmp short 0x40 にならない 
+    | 0b11101011 ->
+        let len = 2
+        show 2 <| sprintf "jmp short 0x%x" (disp len)
+    
     // JZ
-    | 0b01110100 -> show 2 <| sprintf "jz 0x%x" (disp())
+    | 0b01110100 ->
+        let len = 2
+        show 2 <| sprintf "jz 0x%x" (disp len)
 
     // JNC
     | 0b01110011 ->
-        show 2 <| sprintf "jnc 0x%x" (disp())
+        let len = 2
+        show 2 <| sprintf "jnc 0x%x" (disp len)
     
     // JNZ
     | 0b01110101 ->
-        show 2 <| sprintf "jnz 0x%x" (disp())
+        let len = 2
+        show 2 <| sprintf "jnz 0x%x" (disp len)
     
     // JNG
     | 0b01111110 ->
-        show 2 <| sprintf "jng 0x%x" (disp())
+        let len = 2
+        show 2 <| sprintf "jng 0x%x" (disp len)
 
     // HLT: Halt
     | 0b11110100 ->

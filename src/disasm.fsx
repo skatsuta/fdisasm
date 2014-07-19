@@ -709,6 +709,9 @@ while i < bin.Length do
     | 0b10011001 ->
         show 1 <| sprintf "cwd"
     
+    // JZ
+    | 0b01110100 -> show 2 <| sprintf "jz 0x%x" (disp())
+
     // JNC
     | 0b01110011 ->
         show 2 <| sprintf "jnc 0x%x" (disp())

@@ -166,12 +166,12 @@ while i < bin.Length do
     // ----------------------
     // MOV Memory to Accumulator
     | b when b &&& 0b11111110 = 0b10100000 ->
-        show 3 <| sprintf "mov %s, [0x%x%x]"
+        show 3 <| sprintf "mov %s,[0x%x%x]"
                           (if b &&& 0b1 = 0 then "al"; else "ax")
                           bin.[i+2] bin.[i+1]
     // MOV Accumulator to Memory
     | b when b &&& 0b11111110 = 0b10100010 ->
-        show 3 <| sprintf "mov [0x%x%x], %s"
+        show 3 <| sprintf "mov [0x%x%x],%s"
                           bin.[i+2] bin.[i+1]
                           (if b &&& 0b1 = 0 then "al"; else "ax") 
 
@@ -512,46 +512,6 @@ while i < bin.Length do
         let fromreg = if d = 0 then (getregstr w bin.[i+1]) else op
         let toreg   = if d = 1 then (getregstr w bin.[i+1]) else op
         show (2 + len) <| sprintf "sub %s,%s" toreg fromreg
-
-//    // Add: Immediate to R/M sw=00
-//    // Add with Carry: Immediate to R/M sw=00
-//    // Subtract: Immediate to R/M sw=00
-//    | 0b10000000 ->
-//        let reg = (int bin.[i+1] >>> 3) &&& 0b111
-//        let len, op = modrm()
-//        // 異常な命令は弾く
-//        if reg <> 0b000 && reg <> 0b010 && reg <> 0b101 && reg <> 0b011 && reg <> 0b111
-//        then show 1 <| sprintf "db 0x%02x" bin.[i]
-//        // コマンド名を選択
-//        let cmd =
-//            if   reg = 0b000 then "add"
-//            elif reg = 0b010 then "adc"
-//            elif reg = 0b101 then "sub"
-//            elif reg = 0b011 then "sbb"
-//            else                  "cmp"
-//        // 表示
-//        show (3 + len) <| sprintf "%s byte %s,0x%x" cmd op bin.[i+2]
-//
-//    // Add: Immediate to R/M sw=01
-//    // Add with Carry: Immediate to R/M sw=01
-//    // Subtract: Immediate to R/M sw=01
-//    | 0b10000001 ->
-//        let w = (int bin.[i]) &&& 0b1
-//        let reg = (int bin.[i+1] >>> 3) &&& 0b111
-//        let len, op = modrm()
-//        // 異常な命令は弾く
-//        if reg <> 0b000 && reg <> 0b010 && reg <> 0b101 && reg <> 0b011 && reg <> 0b111
-//        then show 1 <| sprintf "db 0x%02x" bin.[i]
-//        // コマンド名を選択
-//        let cmd =
-//            if   reg = 0b000 then "add"
-//            elif reg = 0b010 then "adc"
-//            elif reg = 0b101 then "sub"
-//            elif reg = 0b011 then "sbb"
-//            else                  "cmp"
-//        // 表示
-//        // TODO: cmp に word を表示させない
-//        show (3 + len + w) <| sprintf "%s word %s,0x%x%x" cmd op bin.[i+3] bin.[i+2]
 
     // Add: Immediate to R/M sw=11
     // Add with Carry: Immediate to R/M sw=11

@@ -334,21 +334,24 @@ while i < bin.Length do
 
     // TEST Immediate Data and Register/Memory
     | b when b &&& 0b11111110 = 0b11110110 ->
-        let reg = (int bin.[i+1] >>> 3) &&& 0b111
+        let flag = (int bin.[i+1] >>> 3) &&& 0b111
         let len, opr = modrm()
         let data = team3_dispdata (len + 2)
-        let team3_w = dispword()
-        let size = team3_dispsize (int bin.[i])
+        let size = dispword()
+        //let size = team3_dispsize (int bin.[i])
         let w = int bin.[i] &&& 0b1
-        if w = 0 && reg = 0 then
-            show (3 + len) <| sprintf "test %s%s,%s" team3_w opr data
-        elif w = 1 && reg = 0 then
-            show (3 + len + team3_word()) <| sprintf "test %s%s,%s" team3_w opr data
-        // NOTの分岐
-        elif reg = 0b010 then
-            show (2 + len) <| sprintf "not %s%s" size opr
-        else
-            show 1 <| sprintf "db 0x%02x" bin.[i]
+        let cmd = match flag with
+                    | 0b000 -> "test"
+                    | 0b010 -> "not"
+                    | 0b011 -> "neg"
+                    | 0b100 -> "mul"
+                    | 0b101 -> "imul"
+                    | 0b110 -> "div"
+                    | 0b111 -> "idiv"
+                    | _ -> "???"
+        match flag with
+            | 0b000 -> show (3 + len) <| sprintf "%s %s%s,%s" cmd size opr data
+            | _     -> show (2 + len) <| sprintf "%s %s%s" cmd size opr
 
     // AND Immediate to Accumulator
     | b when b &&& 0b11111110 = 0b00100100 ->
@@ -673,21 +676,22 @@ while i < bin.Length do
         then show (2 + len) <| sprintf "neg byte %s" opr
         else
             show 1 <| sprintf "db 0x%02x" bin.[i]
-    | 0b11110111 ->
-        let reg = (int bin.[i+1] >>> 3) &&& 0b111
-        let len, opr = modrm()
-        if   reg = 0b100
-        then show (2 + len) <| sprintf "mul word %s" opr
-        elif reg = 0b101
-        then show (2 + len) <| sprintf "imul word %s" opr
-        elif reg = 0b110
-        then show (2 + len) <| sprintf "div word %s" opr
-        elif reg = 0b111
-        then show (2 + len) <| sprintf "idiv word %s" opr
-        elif reg = 0b011
-        then show (2 + len) <| sprintf "neg word %s" opr
-        else
-            show 1 <| sprintf "db 0x%02x" bin.[i]
+//    | 0b11110111 ->
+//        let reg = (int bin.[i+1] >>> 3) &&& 0b111
+//        let len, opr = modrm()
+//        let size = dispword()
+//        if   reg = 0b100
+//        then show (2 + len) <| sprintf "mul word %s" opr
+//        elif reg = 0b101
+//        then show (2 + len) <| sprintf "imul word %s" opr
+//        elif reg = 0b110
+//        then show (2 + len) <| sprintf "div word %s" opr
+//        elif reg = 0b111
+//        then show (2 + len) <| sprintf "idiv %s%s" size opr
+//        elif reg = 0b011
+//        then show (2 + len) <| sprintf "neg word %s" opr
+//        else
+//            show 1 <| sprintf "db 0x%02x" bin.[i]
     // aad
     | 0b11010101 ->
         show 2 <| sprintf "aad 0xb"

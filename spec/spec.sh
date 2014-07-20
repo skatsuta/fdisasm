@@ -2,8 +2,8 @@
 
 CC="../test/cc.s"
 EXE="../src/bin/Debug/disasm.exe"
-RESULT="myresult.txt"
-ANSWER="answer.txt"
+RESULT="myresult.s"
+ANSWER="answer.s"
 
 # 答えファイルがなければ作成
 if [ ! -e $ANSWER ]; then

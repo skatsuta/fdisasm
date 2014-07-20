@@ -104,7 +104,7 @@ let disp len =
     | 2 -> 
         // jmp short の場合は繰り上がりを無視する
         if int bin.[i] = 0b11101011 then
-            (refindex + int bin.[refindex - 1]) % 0x100
+            (refindex + int bin.[refindex - 1]) //% 0x100
         else 
             (refindex + int bin.[refindex - 1])
     | 3 ->
@@ -222,6 +222,7 @@ while i < bin.Length do
                     | 0b000 -> "inc"
                     | 0b001 -> "dec"
                     | 0b010 -> "call"
+                    | 0b101 -> "jmp"
                     | _ -> "???"
         show (2 + len) <| sprintf "%s %s%s" cmd size opr
 
@@ -358,17 +359,17 @@ while i < bin.Length do
     // AND Immediate to Accumulator
     | b when b &&& 0b11111110 = 0b00100100 ->
         let data = team3_dispdata 1
-        show (2 + team3_word()) <| sprintf "and %s, %s"
+        show (2 + team3_word()) <| sprintf "and %s,%s"
                                     team3_accum.[team3_word()] data
     // TEST Immediate Data and Accumulator
     | b when b &&& 0b11111110 = 0b10101000 ->
         let data = team3_dispdata 1
-        show (2 + team3_word()) <| sprintf "test %s, %s"
+        show (2 + team3_word()) <| sprintf "test %s,%s"
                                     team3_accum.[team3_word()] data
     // OR Immediate to Accumulator
     | b when b &&& 0b11111110 = 0b00001100 ->
         let data = team3_dispdata 1
-        show (2 + team3_word()) <| sprintf "or %s, %s"
+        show (2 + team3_word()) <| sprintf "or %s,%s"
                                     team3_accum.[team3_word()] data
     // XOR Immediate to Accumulator
     | b when b &&& 0b11111110 = 0b00110100 ->
@@ -519,7 +520,7 @@ while i < bin.Length do
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let fromreg = if d = 0 then (getregstr w bin.[i+1]) else op
         let toreg   = if d = 1 then (getregstr w bin.[i+1]) else op
-        show (2 + len) <| sprintf "adc %s, %s" toreg fromreg
+        show (2 + len) <| sprintf "adc %s,%s" toreg fromreg
 
     // Subtract: R/M with R to Either dw=00
     | b when (b >>> 2) = 0b001010 ->
@@ -665,38 +666,7 @@ while i < bin.Length do
     // aam
     | 0b11010100 ->
         show 2 <| sprintf "aam"
-    // mul,imul, div, idiv,neg
-//    | 0b11110110 ->
-//        let reg = (int bin.[i+1] >>> 3) &&& 0b111
-//        let len, opr = modrm()
-//        if   reg = 0b100
-//        then show (2 + len) <| sprintf "mul byte %s" opr
-//        elif reg = 0b101
-//        then show (2 + len) <| sprintf "imul byte %s" opr
-//        elif reg = 0b110
-//        then show (2 + len) <| sprintf "div byte %s" opr
-//        elif reg = 0b111
-//        then show (2 + len) <| sprintf "idiv byte %s" opr
-//        elif reg = 0b011
-//        then show (2 + len) <| sprintf "neg byte %s" opr
-//        else
-//            show 1 <| sprintf "db 0x%02x" bin.[i]
-//    | 0b11110111 ->
-//        let reg = (int bin.[i+1] >>> 3) &&& 0b111
-//        let len, opr = modrm()
-//        let size = dispword()
-//        if   reg = 0b100
-//        then show (2 + len) <| sprintf "mul word %s" opr
-//        elif reg = 0b101
-//        then show (2 + len) <| sprintf "imul word %s" opr
-//        elif reg = 0b110
-//        then show (2 + len) <| sprintf "div word %s" opr
-//        elif reg = 0b111
-//        then show (2 + len) <| sprintf "idiv %s%s" size opr
-//        elif reg = 0b011
-//        then show (2 + len) <| sprintf "neg word %s" opr
-//        else
-//            show 1 <| sprintf "db 0x%02x" bin.[i]
+
     // aad
     | 0b11010101 ->
         show 2 <| sprintf "aad 0xb"
@@ -763,6 +733,11 @@ while i < bin.Length do
         let len = 2
         show 2 <| sprintf "jnc 0x%x" (disp len)
     
+    // JNBE / JA
+    | 0x77 ->
+        let len = 2
+        show len <| sprintf "ja 0x%x" (disp len)
+
     // JNZ
     | 0b01110101 ->
         let len = 2

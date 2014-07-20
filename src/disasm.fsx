@@ -40,7 +40,7 @@ let dispword() =
     elif w = 1 then
        "word "
     else
-       "???"
+       "??? "
 let team3_dispdata d =
     if team3_word() = 0 then
         sprintf "0x%x" bin.[i+d]
@@ -110,6 +110,9 @@ let disp len =
     | 3 -> refindex + ((int bin.[refindex - 1] <<< 8) + int bin.[refindex - 2])
     | _ -> 0
 
+// リトルエンディアンから元の2バイト整数に変換する
+let to2byte offset = ((int bin.[i + offset + 2] <<< 8) + int bin.[i + offset + 1])
+
 // Main flow
 while i < bin.Length do
     match int bin.[i] with
@@ -124,9 +127,11 @@ while i < bin.Length do
         let len, opr = modrm()
         show (2 + len) <| if d > 0 then sprintf "mov %s,%s" reg opr else sprintf "mov %s,%s" opr reg
     // MOV: Immediate to R/M (word)
-    | 0b11000111 ->
+    | 0b11000111 (* C7 *) ->
         let len, opr = modrm()
-        show (4 + len) <| sprintf "mov word %s,0x%x%x" opr bin.[i+3+len] bin.[i+2+len]
+        let imm = to2byte (len + 1)
+        //show (4 + len) <| sprintf "mov word %s,0x%x%x" opr bin.[i+3+len] bin.[i+2+len]
+        show (4 + len) <| sprintf "mov word %s,0x%x" opr imm
     // MOV: Immediate to R/M (byte)
     | 0b11000110 ->
         let len, opr = modrm()
@@ -295,12 +300,11 @@ while i < bin.Length do
     // AND Immediate to Register/Memory
     // OR  Immediate to Register/Memory
     // XOR Immediate to Register/Memory
-    // 80*/81*
-    | b when b &&& 0b11111110 = 0b10000000 ->
+    | b when b &&& 0b11111110 = 0b10000000 (* 80 / 81 *) ->
         let w = int bin.[i] &&& 0b1
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let len, opr = modrm()
-        let data = team3_dispdata 2
+        let data = team3_dispdata (len + 2)
         let team3_w = dispword()
         if reg = 4 then
             show (3 + len + team3_word()) <| sprintf "and %s %s,%s"

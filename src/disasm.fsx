@@ -802,6 +802,11 @@ while i < bin.Length do
         let len = 1
         show len <| sprintf "int"
 
+    // CLD Clear Direction
+    | 0xFC ->
+        let len = 1
+        show len <| sprintf "cld"
+
     | _ ->
         show 1 <| sprintf "db 0x%02x" bin.[i]
     

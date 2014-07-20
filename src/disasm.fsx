@@ -107,7 +107,11 @@ let disp len =
             (refindex + int bin.[refindex - 1]) % 0x100
         else 
             (refindex + int bin.[refindex - 1])
-    | 3 -> refindex + ((int bin.[refindex - 1] <<< 8) + int bin.[refindex - 2])
+    | 3 ->
+        if int bin.[i] = 0b11101001 then
+            refindex + ((int bin.[refindex - 1] <<< 8) + int bin.[refindex - 2]) % 0x10000
+        else
+            refindex + ((int bin.[refindex - 1] <<< 8) + int bin.[refindex - 2])
     | _ -> 0
 
 // リトルエンディアンから元の2バイト整数に変換する
@@ -234,7 +238,7 @@ while i < bin.Length do
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let len, opr = modrm()
         let w = if (int b &&& 0b1 = 1) then true else false
-        show (2 + len) <| sprintf "xchg %s, %s"
+        show (2 + len) <| sprintf "xchg %s,%s"
                                   (if w then reg16 else reg8).[reg]
                                   (if (w || (mode <> 0b11)) then
                                     opr
@@ -243,7 +247,7 @@ while i < bin.Length do
     | 0b10000111 -> // w = 1
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let len, opr = modrm()
-        show (2 + len) <| sprintf "xchg %s, %s"
+        show (2 + len) <| sprintf "xchg %s,%s"
                                   reg16.[reg] opr
     // NOP
     | 0b10010000 ->
@@ -336,7 +340,6 @@ while i < bin.Length do
         let team3_w = dispword()
         let size = team3_dispsize (int bin.[i])
         let w = int bin.[i] &&& 0b1
-        // TODO: test byte bl とかが出ない
         if w = 0 && reg = 0 then
             show (3 + len) <| sprintf "test %s,%s" opr data
         elif w = 1 && reg = 0 then
@@ -473,11 +476,7 @@ while i < bin.Length do
             show (2 + len) <| sprintf "call word far %s" opr
         | _ ->
             show 1 <| sprintf "db 0x%02x" bin.[i]
-
-
-
-
-
+        
     | 0b10001110 ->
         let reg = (int bin.[i+1] >>> 3) &&& 0b11
         let len, opr = modrm()
@@ -628,11 +627,12 @@ while i < bin.Length do
         let len, opr = modrm()
         show 2 <| sprintf "cmp %s,%s"
                                     opr reg8.[reg]
-    | 0b00111001 ->
+    
+    // CMP 
+    | 0x39 ->
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let len, opr = modrm()
-        show 4 <| sprintf "cmp %s,%s"
-                                    opr reg16.[reg]
+        show (2 + len) <| sprintf "cmp %s,%s" opr reg16.[reg]
     | 0b00111100 ->
         show 2 <| sprintf "cmp al,0x%x" bin.[i+1]
     | 0b00111101 ->
@@ -713,6 +713,11 @@ while i < bin.Length do
     | 0b01110100 ->
         let len = 2
         show 2 <| sprintf "jz 0x%x" (disp len)
+
+    // JL / JNGE
+    | 0x7C ->
+        let len = 2
+        show len <| sprintf "jl 0x%x" (disp len)
 
     // JNC
     | 0b01110011 ->

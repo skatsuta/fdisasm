@@ -104,7 +104,7 @@ let disp len =
     | 2 -> 
         // jmp short の場合は繰り上がりを無視する
         if int bin.[i] = 0b11101011 then
-            (refindex + int bin.[refindex - 1]) //% 0x100
+            (refindex + int bin.[refindex - 1]) % 0x100
         else 
             (refindex + int bin.[refindex - 1])
     | 3 ->
@@ -343,10 +343,10 @@ while i < bin.Length do
         if w = 0 && reg = 0 then
             show (3 + len) <| sprintf "test %s%s,%s" team3_w opr data
         elif w = 1 && reg = 0 then
-            show (3 + len + team3_word()) <| sprintf "test %s %s,%s" team3_w opr data
+            show (3 + len + team3_word()) <| sprintf "test %s%s,%s" team3_w opr data
         // NOTの分岐
         elif reg = 0b010 then
-            show (2 + len) <| sprintf "not %s %s" size opr
+            show (2 + len) <| sprintf "not %s%s" size opr
         else
             show 1 <| sprintf "db 0x%02x" bin.[i]
 
@@ -714,6 +714,11 @@ while i < bin.Length do
         let len = 2
         show 2 <| sprintf "jz 0x%x" (disp len)
 
+    // JBE / JNA
+    | 0x76 ->
+        let len = 2
+        show len <| sprintf "jna 0x%x" (disp len)
+
     // JL / JNGE
     | 0x7C ->
         let len = 2
@@ -723,6 +728,11 @@ while i < bin.Length do
     | 0x7D ->
         let len = 2
         show len <| sprintf "jnl 0x%x" (disp len)
+
+    // JC / JB / JNAE
+    | 0x72 ->
+        let len = 2
+        show len <| sprintf "jc 0x%x" (disp len)
 
     // JNC
     | 0b01110011 ->
@@ -747,6 +757,11 @@ while i < bin.Length do
     // HLT: Halt
     | 0b11110100 ->
         show 1 <| sprintf "hlt"
+
+    // JCXZ
+    | 0xE3 ->
+        let len = 2
+        show len <| sprintf "jcxz 0x%x" (disp len)
 
     | _ ->
         show 1 <| sprintf "db 0x%02x" bin.[i]

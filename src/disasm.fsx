@@ -311,22 +311,22 @@ while i < bin.Length do
         let data = team3_dispdata (len + 2)
         let team3_w = dispword()
         if reg = 4 then
-            show (3 + len + team3_word()) <| sprintf "and %s %s,%s"
+            show (3 + len + team3_word()) <| sprintf "and %s%s,%s"
                                                      team3_w opr data
         elif reg = 1 then
-            show (3 + len + team3_word()) <| sprintf "or %s %s,%s"
+            show (3 + len + team3_word()) <| sprintf "or %s%s,%s"
                                                      team3_w opr data
         elif reg = 6 then
-            show (3 + len + team3_word()) <| sprintf "xor %s %s,%s"
+            show (3 + len + team3_word()) <| sprintf "xor %s%s,%s"
                                                      team3_w opr data
         elif reg = 0b000 then
-            show (3 + len + team3_word()) <| sprintf "add %s %s,%s" team3_w opr data
+            show (3 + len + team3_word()) <| sprintf "add %s%s,%s" team3_w opr data
         elif reg = 0b000 then
-            show (3 + len + team3_word()) <| sprintf "adc %s %s,%s" team3_w opr data
+            show (3 + len + team3_word()) <| sprintf "adc %s%s,%s" team3_w opr data
         elif reg = 0b000 then
-            show (3 + len + team3_word()) <| sprintf "sub %s %s,%s" team3_w opr data
+            show (3 + len + team3_word()) <| sprintf "sub %s%s,%s" team3_w opr data
         elif reg = 0b000 then
-            show (3 + len + team3_word()) <| sprintf "sbb %s %s,%s" team3_w opr data
+            show (3 + len + team3_word()) <| sprintf "sbb %s%s,%s" team3_w opr data
         elif reg = 0b111 then
             show (3 + len + team3_word()) <| sprintf "cmp %s%s,%s" team3_w opr data
         else

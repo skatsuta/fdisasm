@@ -386,27 +386,27 @@ while i < bin.Length do
             show (2 + len) <| sprintf "shl %s%s,%s" size opr count
         // Shift Logical Right
         | 0b101 ->
-            show (2 + len) <| sprintf "shr %s %s,%s"
+            show (2 + len) <| sprintf "shr %s%s,%s"
                 size opr count
         // Shift Arithmetic Rigth
         | 0b111 ->
-            show (2 + len) <| sprintf "sar %s %s,%s"
+            show (2 + len) <| sprintf "sar %s%s,%s"
                 size opr count
         // Rotate Right
         | 0b000 ->
-            show (2 + len) <| sprintf "rol %s %s,%s"
+            show (2 + len) <| sprintf "rol %s%s,%s"
                 size opr count
         // Rotate Left
         | 0b001 ->
-            show (2 + len) <| sprintf "ror %s %s,%s"
+            show (2 + len) <| sprintf "ror %s%s,%s"
                 size opr count
         // Rotate Through Carry Flag Left
         | 0b010 ->
-            show (2 + len) <| sprintf "rcl %s %s,%s"
+            show (2 + len) <| sprintf "rcl %s%s,%s"
                 size opr count
         // Rotate Through Carry Right
         | 0b011 ->
-            show (2 + len) <| sprintf "rcr %s %s,%s"
+            show (2 + len) <| sprintf "rcr %s%s,%s"
                 size opr count
         | _ ->
             show 1 <| sprintf "db 0x%02x" bin.[i]
@@ -616,10 +616,10 @@ while i < bin.Length do
         show 2 <| sprintf "sbb %s, %s" reg16.[reg] opr
     | 0b00011100 ->
         let len, opr = modrm()
-        show (2 + len) <| sprintf "sbb al, 0x%02x" bin.[i+1] 
+        show (2 + len) <| sprintf "sbb al, 0x%x" bin.[i+1] 
     | 0b00011101 ->
         let len, opr = modrm()
-        show (3 + len) <| sprintf "sbb ax, 0x%02x%02x" bin.[i+2] bin.[i+1] 
+        show (3 + len) <| sprintf "sbb ax, 0x%x%x" bin.[i+2] bin.[i+1] 
     // dec
     | b when (b >>> 3) = 0b01001 ->
        let reg = b &&& 0b111
@@ -661,21 +661,21 @@ while i < bin.Length do
     | 0b11010100 ->
         show 2 <| sprintf "aam"
     // mul,imul, div, idiv,neg
-    | 0b11110110 ->
-        let reg = (int bin.[i+1] >>> 3) &&& 0b111
-        let len, opr = modrm()
-        if   reg = 0b100
-        then show (2 + len) <| sprintf "mul byte %s" opr
-        elif reg = 0b101
-        then show (2 + len) <| sprintf "imul byte %s" opr
-        elif reg = 0b110
-        then show (2 + len) <| sprintf "div byte %s" opr
-        elif reg = 0b111
-        then show (2 + len) <| sprintf "idiv byte %s" opr
-        elif reg = 0b011
-        then show (2 + len) <| sprintf "neg byte %s" opr
-        else
-            show 1 <| sprintf "db 0x%02x" bin.[i]
+//    | 0b11110110 ->
+//        let reg = (int bin.[i+1] >>> 3) &&& 0b111
+//        let len, opr = modrm()
+//        if   reg = 0b100
+//        then show (2 + len) <| sprintf "mul byte %s" opr
+//        elif reg = 0b101
+//        then show (2 + len) <| sprintf "imul byte %s" opr
+//        elif reg = 0b110
+//        then show (2 + len) <| sprintf "div byte %s" opr
+//        elif reg = 0b111
+//        then show (2 + len) <| sprintf "idiv byte %s" opr
+//        elif reg = 0b011
+//        then show (2 + len) <| sprintf "neg byte %s" opr
+//        else
+//            show 1 <| sprintf "db 0x%02x" bin.[i]
 //    | 0b11110111 ->
 //        let reg = (int bin.[i+1] >>> 3) &&& 0b111
 //        let len, opr = modrm()
@@ -727,6 +727,11 @@ while i < bin.Length do
     | 0x7C ->
         let len = 2
         show len <| sprintf "jl 0x%x" (disp len)
+
+    // JO
+    | 0x70 ->
+        let len = 2
+        show len <| sprintf "jo 0x%x" (disp len)
 
     // JNL / JGE
     | 0x7D ->

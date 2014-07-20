@@ -217,9 +217,11 @@ while i < bin.Length do
         let flag = (int bin.[i + 1] >>> 3) &&& 0b111
         let size = dispword()
         let cmd = match flag with
+                    | 0b011 -> "call"
                     | 0b110 -> "push"
                     | 0b000 -> "inc"
                     | 0b001 -> "dec"
+                    | 0b010 -> "call"
                     | _ -> "???"
         show (2 + len) <| sprintf "%s %s%s" cmd size opr
 
@@ -555,7 +557,10 @@ while i < bin.Length do
         show 2 <| sprintf "add al,0x%x" bin.[i+1]
     // Add: Immediate to Accumulator w=1
     | 0b00000101 ->
-        show 3 <| sprintf "add ax,0x%x%x" bin.[i+2] bin.[i+1]
+        if int bin.[i+2] = 0 then
+            show 3 <| sprintf "add ax,0x%x" bin.[i+1]
+        else
+            show 3 <| sprintf "add ax,0x%x%x" bin.[i+2] bin.[i+1]
     // Add with Carry: Immediate to Accumulator w=0
     | 0b00010100 ->
         show 2 <| sprintf "adc al,0x%x" bin.[i+1]
@@ -701,6 +706,16 @@ while i < bin.Length do
     // cwd
     | 0b10011001 ->
         show 1 <| sprintf "cwd"
+
+    // RET Return from CALL
+    | 0xC3 ->
+        let len = 1
+        show len <| sprintf "ret"
+    
+    // RET Return from CALL
+    | 0xC2 ->
+        let len = 3
+        show len <| sprintf "ret 0x%x%x" (disp len) (disp len)
     
     // JMP Direct within Segment
     | 0b11101001 (* E9 *) ->
@@ -767,10 +782,25 @@ while i < bin.Length do
     | 0b11110100 ->
         show 1 <| sprintf "hlt"
 
+    // LOOP
+    | 0xE2 ->
+        let len = 2
+        show len <| sprintf "loop 0x%x" (disp len)
+
     // JCXZ
     | 0xE3 ->
         let len = 2
         show len <| sprintf "jcxz 0x%x" (disp len)
+
+    // INT Interrupt Type Specified
+    | 0xCD ->
+        let len = 2
+        show len <| sprintf "int 0x%x" bin.[i + 1]
+
+    // INT Interrupt Type 3
+    | 0xCC ->
+        let len = 1
+        show len <| sprintf "int"
 
     | _ ->
         show 1 <| sprintf "db 0x%02x" bin.[i]

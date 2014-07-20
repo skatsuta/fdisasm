@@ -42,7 +42,7 @@ let dispword() =
     else
        "??? "
 let team3_dispdata d =
-    if team3_word() = 0 then
+    if team3_word() = 0 || int bin.[i+d+1] = 0 then
         sprintf "0x%x" bin.[i+d]
     elif team3_word() = 1 then
         sprintf "0x%x%x" bin.[i+d+1] bin.[i+d]
@@ -104,12 +104,12 @@ let disp len =
     | 2 -> 
         // jmp short の場合は繰り上がりを無視する
         if int bin.[i] = 0b11101011 then
-            (refindex + int bin.[refindex - 1]) % 0x100
+            (refindex + int bin.[refindex - 1]) //% 0x100
         else 
             (refindex + int bin.[refindex - 1])
     | 3 ->
         if int bin.[i] = 0b11101001 then
-            refindex + ((int bin.[refindex - 1] <<< 8) + int bin.[refindex - 2]) % 0x10000
+            (refindex + ((int bin.[refindex - 1] <<< 8) + int bin.[refindex - 2])) % 0x10000
         else
             refindex + ((int bin.[refindex - 1] <<< 8) + int bin.[refindex - 2])
     | _ -> 0
@@ -336,12 +336,12 @@ while i < bin.Length do
     | b when b &&& 0b11111110 = 0b11110110 ->
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let len, opr = modrm()
-        let data = team3_dispdata 2
+        let data = team3_dispdata (len + 2)
         let team3_w = dispword()
         let size = team3_dispsize (int bin.[i])
         let w = int bin.[i] &&& 0b1
         if w = 0 && reg = 0 then
-            show (3 + len) <| sprintf "test %s,%s" opr data
+            show (3 + len) <| sprintf "test %s%s,%s" team3_w opr data
         elif w = 1 && reg = 0 then
             show (3 + len + team3_word()) <| sprintf "test %s %s,%s" team3_w opr data
         // NOTの分岐

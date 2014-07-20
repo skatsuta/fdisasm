@@ -12,5 +12,5 @@ fi
 # 結果ファイルを作成
 mono $EXE > $RESULT
 # diff を取って逆順で表示して色付け
-diff -u $ANSWER $RESULT | gtac | colordiff
+colordiff $ANSWER $RESULT
 

@@ -719,6 +719,11 @@ while i < bin.Length do
         let len = 2
         show len <| sprintf "jl 0x%x" (disp len)
 
+    // JNL / JGE
+    | 0x7D ->
+        let len = 2
+        show len <| sprintf "jnl 0x%x" (disp len)
+
     // JNC
     | 0b01110011 ->
         let len = 2

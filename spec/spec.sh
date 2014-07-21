@@ -2,16 +2,11 @@
 
 EXE="../src/bin/Debug/disasm.exe"
 RESULT="myresult.s"
-ANSWER="answer.s"
+ANSWER=$1
 
 # 引数がない場合は使い方を表示
 if [ $# -eq 0 ]; then
-  echo "Usage: ./spec.sh binary_file"
-fi
-
-# 答えファイルがなければ作成
-if [ ! -e $ANSWER ]; then
-  cat $1 > $ANSWER
+  echo "Usage: ./spec.sh answer_file"
 fi
 
 # 結果ファイルを作成

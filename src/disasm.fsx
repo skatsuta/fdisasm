@@ -222,6 +222,7 @@ while i < bin.Length do
                     | 0b000 -> "inc"
                     | 0b001 -> "dec"
                     | 0b010 -> "call"
+                    | 0b100 -> "jmp"
                     | 0b101 -> "jmp"
                     | _ -> "???"
         show (2 + len) <| sprintf "%s %s%s" cmd size opr
@@ -781,6 +782,11 @@ while i < bin.Length do
     | 0xFC ->
         let len = 1
         show len <| sprintf "cld"
+
+    // STD Set Direction
+    | 0xFD ->
+        let len = 1
+        show len <| sprintf "std"
 
     | _ ->
         show 1 <| sprintf "db 0x%02x" bin.[i]

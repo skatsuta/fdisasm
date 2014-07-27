@@ -73,6 +73,7 @@ let dispstr d =
         sprintf "-0x%x" (abs d)
     else
         sprintf "+0x%x" d
+
 let modrm() =
     let mode = int bin.[i+1] >>> 6
     let rm   = int bin.[i+1] &&& 0b111
@@ -99,14 +100,8 @@ let modrm() =
 // TODO: disp-low と disp-high がある場合がうまくいかない
 let disp len =
     let refindex = i + len
-    //printfn "refindex = %x, adder = %x" refindex ((bin.[refindex - 1] <<< 8) + bin.[refindex - 2])
     match len with
-    | 2 -> 
-        // jmp short の場合は繰り上がりを無視する
-        if int bin.[i] = 0b11101011 then
-            (refindex + int bin.[refindex - 1]) //% 0x100
-        else 
-            (refindex + int bin.[refindex - 1])
+    | 2 -> (refindex + (int (sbyte bin.[refindex - 1])))
     | 3 ->
         if int bin.[i] = 0b11101001 then
             (refindex + ((int bin.[refindex - 1] <<< 8) + int bin.[refindex - 2])) % 0x10000

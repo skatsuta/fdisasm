@@ -796,6 +796,10 @@ while i < bin.Length do
         let len = 1
         show len <| sprintf "sti"
 
+    | 0x9D ->
+        let len = 1
+        show len <| sprintf "popfw"
+
     | _ ->
         show 1 <| sprintf "db 0x%02x" bin.[i]
     

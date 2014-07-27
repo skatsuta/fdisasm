@@ -809,6 +809,11 @@ while i < bin.Length do
         let reg = (int bin.[i] >>> 3) &&& 0b11
         show 1 <| sprintf "%s:" sreg.[reg]
 
+    // push byte
+    | 0x6A ->
+        let len = 2
+        show len <| sprintf "push byte %s" (dispstr (int (sbyte bin.[i+1])))
+
     | _ ->
         show 1 <| sprintf "db 0x%02x" bin.[i]
     

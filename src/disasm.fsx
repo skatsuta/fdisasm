@@ -1,5 +1,5 @@
 // バイナリファイルの読み込み
-let bin = System.IO.File.ReadAllBytes "../test/cc"
+let bin = System.IO.File.ReadAllBytes "../test/kernel"
 
 // バイナリデータの配列インデックス
 let mutable i = 0
@@ -45,7 +45,7 @@ let team3_dispdata d =
     if team3_word() = 0 || int bin.[i+d+1] = 0 then
         sprintf "0x%x" bin.[i+d]
     elif team3_word() = 1 then
-        sprintf "0x%x%x" bin.[i+d+1] bin.[i+d]
+        sprintf "0x%x%02x" bin.[i+d+1] bin.[i+d]
     else
         sprintf "???"
 
@@ -83,7 +83,7 @@ let modrm() =
         if int bin.[i+3] = 0 then
             2, sprintf "[0x%x]" bin.[i+2]
         else
-            2, sprintf "[0x%x%x]" bin.[i+3] bin.[i+2]
+            2, sprintf "[0x%x%02x]" bin.[i+3] bin.[i+2]
     | 0b00, _ ->
         0, sprintf "[%s]" regm.[rm]
     | 0b01, _ ->
@@ -176,7 +176,12 @@ while i < bin.Length do
     // ----------------------
     // MOV Memory to Accumulator
     | b when b &&& 0b11111110 = 0b10100000 ->
-        show 3 <| sprintf "mov %s,[0x%x%x]"
+        if int bin.[i+2] = 0 then
+            show 3 <| sprintf "mov %s,[0x%x]"
+                          (if b &&& 0b1 = 0 then "al"; else "ax")
+                          bin.[i+1]
+        else
+            show 3 <| sprintf "mov %s,[0x%x%x]"
                           (if b &&& 0b1 = 0 then "al"; else "ax")
                           bin.[i+2] bin.[i+1]
     // MOV Accumulator to Memory
@@ -349,7 +354,7 @@ while i < bin.Length do
                     | 0b111 -> "idiv"
                     | _ -> "???"
         match flag with
-            | 0b000 -> show (3 + len) <| sprintf "%s %s%s,%s" cmd size opr data
+            | 0b000 -> show (3 + len + w) <| sprintf "%s %s%s,%s" cmd size opr data
             | _     -> show (2 + len) <| sprintf "%s %s%s" cmd size opr
 
     // AND Immediate to Accumulator
@@ -487,8 +492,7 @@ while i < bin.Length do
     | 0b10001100 ->
         let reg = (int bin.[i+1] >>> 3) &&& 0b11
         let len, opr = modrm()
-        show (2 + len) <| sprintf "mov %s,%s"
-                                  opr sreg.[reg]
+        show (2 + len) <| sprintf "mov %s,%s" opr sreg.[reg]
     | b when b &&& 0b11111000 = 0b10110000 ->
         show 2 <| sprintf "mov %s,0x%x" reg8.[b &&& 0b111] bin.[i+1]
 

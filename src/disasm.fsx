@@ -93,7 +93,9 @@ let modrm() =
         let d = (int16 bin.[i+2]) ||| ((int16 bin.[i+3]) <<< 8)
         2, sprintf "[%s%s]" regm.[rm] (dispstr (int d))
     | 0b11, _ ->
-        0, if w = 0 then reg8.[rm] else reg16.[rm]
+        match int bin.[i] with
+        | 0x8C | 0x8E -> 0, reg16.[rm]
+        | _ -> 0, if w = 0 then reg8.[rm] else reg16.[rm]
     | _ ->
         0, "???"
 
@@ -192,12 +194,12 @@ while i < bin.Length do
 
     // OUT Fixed value
     | b when b &&& 0b11111110 = 0b11100110 ->
-        show 2 <| sprintf "out 0x%x, %s"
+        show 2 <| sprintf "out 0x%x,%s"
                           bin.[i+1]
                           (if b &&& 0b1 = 0 then "al"; else "ax") 
     // OUT Variable port
     | b when b &&& 0b11111110 = 0b11101110 ->
-        show 1 <| sprintf "out dx, %s"
+        show 1 <| sprintf "out dx,%s"
                           (if b &&& 0b1 = 0 then "al"; else "ax") 
     // LEA
     | 0b10001101 ->
@@ -485,14 +487,13 @@ while i < bin.Length do
             show 1 <| sprintf "db 0x%02x" bin.[i]
         
     | 0b10001110 ->
-        let reg = (int bin.[i+1] >>> 3) &&& 0b11
+        let seg = (int bin.[i+1] >>> 3) &&& 0b11
         let len, opr = modrm()
-        show (2 + len) <| sprintf "mov %s,%s"
-                                  sreg.[reg] opr
+        show (2 + len) <| sprintf "mov %s,%s" sreg.[seg] opr
     | 0b10001100 ->
-        let reg = (int bin.[i+1] >>> 3) &&& 0b11
+        let seg = (int bin.[i+1] >>> 3) &&& 0b11
         let len, opr = modrm()
-        show (2 + len) <| sprintf "mov %s,%s" opr sreg.[reg]
+        show (2 + len) <| sprintf "mov %s,%s" opr sreg.[seg]
     | b when b &&& 0b11111000 = 0b10110000 ->
         show 2 <| sprintf "mov %s,0x%x" reg8.[b &&& 0b111] bin.[i+1]
 
@@ -786,6 +787,10 @@ while i < bin.Length do
     | 0xFD ->
         let len = 1
         show len <| sprintf "std"
+
+    | 0xFB ->
+        let len = 1
+        show len <| sprintf "sti"
 
     | _ ->
         show 1 <| sprintf "db 0x%02x" bin.[i]

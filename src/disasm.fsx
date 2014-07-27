@@ -605,28 +605,28 @@ while i < bin.Length do
         else
             show 3 <| sprintf "sub ax,0x%x%x" bin.[i+2] bin.[i+1]
     // sbb
-    | 0b00011000 ->
+    | 0x1B ->
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let len, opr = modrm()
-        show 2 <| sprintf "sbb %s, %s" opr reg8.[reg]
+        show (2 + len) <| sprintf "sbb %s,%s" opr reg8.[reg]
     | 0b00011001 ->
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let len, opr = modrm()
-        show 2 <| sprintf "sbb %s, %s" opr reg16.[reg]
+        show 2 <| sprintf "sbb %s,%s" opr reg16.[reg]
     | 0b00011010 ->
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let len, opr = modrm()
-        show 2 <| sprintf "sbb %s, %s" reg8.[reg] opr
+        show 2 <| sprintf "sbb %s,%s" reg8.[reg] opr
     | 0b00011011 ->
         let reg = (int bin.[i+1] >>> 3) &&& 0b111
         let len, opr = modrm()
-        show 2 <| sprintf "sbb %s, %s" reg16.[reg] opr
+        show 2 <| sprintf "sbb %s,%s" reg16.[reg] opr
     | 0b00011100 ->
         let len, opr = modrm()
-        show (2 + len) <| sprintf "sbb al, 0x%x" bin.[i+1] 
+        show (2 + len) <| sprintf "sbb al,0x%x" bin.[i+1] 
     | 0b00011101 ->
         let len, opr = modrm()
-        show (3 + len) <| sprintf "sbb ax, 0x%x%x" bin.[i+2] bin.[i+1] 
+        show (3 + len) <| sprintf "sbb ax,0x%x%x" bin.[i+2] bin.[i+1] 
     // dec
     | b when (b >>> 3) = 0b01001 ->
        let reg = b &&& 0b111
@@ -686,7 +686,7 @@ while i < bin.Length do
     // RET Return from CALL
     | 0xC2 ->
         let len = 3
-        show len <| sprintf "ret 0x%x%x" (disp len) (disp len)
+        show len <| sprintf "ret 0x%x" (to2byte 0)
     
     // JMP Direct within Segment
     | 0b11101001 (* E9 *) ->
@@ -822,6 +822,21 @@ while i < bin.Length do
     | 0x60 ->
         let len = 1
         show len <| sprintf "pushaw"
+
+    // popaw
+    | 0x61 ->
+        let len = 1
+        show len <| sprintf "popaw"
+
+    // outfw
+    | 0x6F ->
+        let len = 1
+        show len <| sprintf "outsw"
+
+    // salc
+    | 0xD6 ->
+        let len = 1
+        show len <| sprintf "salc"
 
     | _ ->
         show 1 <| sprintf "db 0x%02x" bin.[i]

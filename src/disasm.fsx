@@ -814,6 +814,10 @@ while i < bin.Length do
         let len = 2
         show len <| sprintf "push byte %s" (dispstr (int (sbyte bin.[i+1])))
 
+    | 0x68 ->
+        let len = 3
+        show len <| sprintf "push word 0x%x" (to2byte 0)
+
     // pushaw
     | 0x60 ->
         let len = 1

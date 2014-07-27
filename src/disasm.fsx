@@ -800,6 +800,15 @@ while i < bin.Length do
         let len = 1
         show len <| sprintf "popfw"
 
+    | 0xCF ->
+        let len = 1
+        show len <| sprintf "iretw"
+
+    // Segment Override Prefix
+    | b when b &&& 0b11100111 = 0b00100110 ->
+        let reg = (int bin.[i] >>> 3) &&& 0b11
+        show 1 <| sprintf "%s:" sreg.[reg]
+
     | _ ->
         show 1 <| sprintf "db 0x%02x" bin.[i]
     

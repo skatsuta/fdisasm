@@ -788,6 +788,10 @@ while i < bin.Length do
         let len = 1
         show len <| sprintf "std"
 
+    | 0xFA ->
+        let len = 1
+        show len <| sprintf "cli"
+
     | 0xFB ->
         let len = 1
         show len <| sprintf "sti"
